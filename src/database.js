@@ -1,4 +1,4 @@
-import fs from 'node:fs/promises'
+import fs from 'node:fs'
 
 const databasePath = new URL('../db.json', import.meta.url)
 
@@ -6,15 +6,17 @@ export class Database {
     #database = {}
 
     constructor() {
-        fs.readFile(databasePath, 'utf8').then(data => {
+        try {
+            const data = fs.readFileSync(databasePath, 'utf8')
             this.#database = JSON.parse(data)
-        }).catch(() => {
+        } catch (error) {
+            this.#database = {}
             this.#persist()
-        })
+        }
     }
 
-    #persist(){
-        fs.writeFile('db.json', JSON.stringify(this.#database))
+    #persist() {
+        fs.writeFileSync(databasePath, JSON.stringify(this.#database, null, 2))
     }
 
     select (table, search) {
@@ -43,14 +45,18 @@ export class Database {
         return data;
     }
 
-    update (table, id, data) {
-        const rowIndex = this.#database[table].findIndex(row => row.id === id)
+    update(table, id, data) {
+  const rowIndex = this.#database[table].findIndex(row => row.id === id)
 
-        if (rowIndex > -1) {
-            this.#database[table][rowIndex] = { id, ...data }
-            this.#persist()
-        }
+  if (rowIndex > -1) {
+    this.#database[table][rowIndex] = {
+      ...this.#database[table][rowIndex],
+      ...data,
     }
+
+    this.#persist()
+  }
+}
 
     delete (table, id) {
         const rowIndex = this.#database[table].findIndex(row => row.id === id)
